@@ -1,5 +1,5 @@
 # Create AWS EKS Node Group - Private
-/*
+
 resource "aws_eks_node_group" "eks_ng_private" {
   cluster_name    = aws_eks_cluster.eks_cluster.name
 
@@ -15,13 +15,13 @@ resource "aws_eks_node_group" "eks_ng_private" {
   
   
   remote_access {
-    ec2_ssh_key = "eks-terraform-key"    
+    ec2_ssh_key = "devsecops"    
   }
 
   scaling_config {
     desired_size = 1
     min_size     = 1    
-    max_size     = 2
+    max_size     = 1
   }
 
   # Desired max percentage of unavailable worker nodes during node group update.
@@ -41,4 +41,4 @@ resource "aws_eks_node_group" "eks_ng_private" {
     Name = "Private-Node-Group"
   }
 }
-*/
+

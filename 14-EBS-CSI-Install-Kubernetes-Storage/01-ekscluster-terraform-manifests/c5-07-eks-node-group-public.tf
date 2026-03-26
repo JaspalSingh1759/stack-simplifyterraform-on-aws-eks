@@ -14,13 +14,13 @@ resource "aws_eks_node_group" "eks_ng_public" {
   
   
   remote_access {
-    ec2_ssh_key = "eks-terraform-key"
+    ec2_ssh_key = "devsecops"
   }
 
   scaling_config {
     desired_size = 1
     min_size     = 1    
-    max_size     = 2
+    max_size     = 1
   }
 
   # Desired max percentage of unavailable worker nodes during node group update.
