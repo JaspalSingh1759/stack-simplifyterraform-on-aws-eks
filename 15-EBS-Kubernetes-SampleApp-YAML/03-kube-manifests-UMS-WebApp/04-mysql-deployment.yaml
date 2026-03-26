@@ -16,25 +16,33 @@ spec:
     spec: 
       containers:
         - name: mysql
-          image: mysql:5.6
+          image: mysql:8
           env:
             - name: MYSQL_ROOT_PASSWORD
-              value: dbpassword11
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: mysql-config
+                  key: MYSQL_DATABASE
           ports:
             - containerPort: 3306
               name: mysql    
           volumeMounts:
-            - name: mysql-persistent-storage
-              mountPath: /var/lib/mysql    
-            - name: usermanagement-dbcreation-script
-              mountPath: /docker-entrypoint-initdb.d #https://hub.docker.com/_/mysql Refer Initializing a fresh instance                                            
-      volumes: 
-        - name: mysql-persistent-storage
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: mysql-storage
           persistentVolumeClaim:
-            claimName: ebs-mysql-pv-claim
-        - name: usermanagement-dbcreation-script
+            claimName: mysql-pvc
+        - name: initdb
           configMap:
-            name: usermanagement-dbcreation-script
+            name: mysql-initdb-config
 
 
 # VERY IMPORTANT POINTS ABOUT CONTAINERS AND POD VOLUMES: 

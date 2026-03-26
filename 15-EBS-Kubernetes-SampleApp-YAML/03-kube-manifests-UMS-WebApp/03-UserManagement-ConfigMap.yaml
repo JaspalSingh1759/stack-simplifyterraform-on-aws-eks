@@ -1,18 +1,43 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  labels:
+    app: mysql
+stringData:
+  MYSQL_ROOT_PASSWORD: Aditya
+
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: usermanagement-dbcreation-script
-data: 
-  mysql_usermgmt.sql: |-
-    DROP DATABASE IF EXISTS webappdb;
-    CREATE DATABASE webappdb; 
+  name: mysql-config
+  labels:
+    app: mysql
+data:
+  MYSQL_DATABASE: crud_app
 
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-initdb-config
+  labels:
+    app: mysql
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS crud_app;
 
-# CONFIG MAP
-# 1. A ConfigMap is an API object used to store non-confidential data in 
-# key-value pairs. 
+    USE crud_app;
 
-# 2. Pods can consume ConfigMaps as 
-## 2.1: environment variables, 
-## 2.2: command-line arguments, 
-## 2.3: or as configuration files in a volume. We are going to use this in our MySQL Deployment)  
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      password VARCHAR(255) NOT NULL,
+      role ENUM('admin', 'viewer') NOT NULL DEFAULT 'viewer',
+      is_active TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
