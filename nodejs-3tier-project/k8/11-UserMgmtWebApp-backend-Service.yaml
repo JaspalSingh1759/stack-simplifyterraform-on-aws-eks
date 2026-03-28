@@ -3,9 +3,10 @@ kind: Service
 metadata:
   name: backend
 spec:
-  type: LoadBalancer
   selector:
     app: backend
   ports:
     - port: 5000
       targetPort: 5000
+
+      
