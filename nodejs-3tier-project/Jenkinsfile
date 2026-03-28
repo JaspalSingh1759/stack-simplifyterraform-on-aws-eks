@@ -1,0 +1,171 @@
+pipeline {
+    agent any
+    
+    tools {
+        nodejs 'nodejs23'
+    }
+
+    environment {
+        AWS_REGION = "us-east-1"
+        CLUSTER_NAME = "hr-dev-eksdemo1"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        TF_DIR = "terraform"
+        K8S_DIR = "k8s-prod"
+    }
+
+    stages {
+
+        stage('Git Checkout') {
+            steps {
+                git branch: 'devsecops', url: 'https://github.com/JaspalSingh1759/stack-simplifyterraform-on-aws-eks.git'
+            }
+        }
+        
+        stage('Frontend Compilation') {
+            steps {
+                dir('nodejs-3tier-project/3-Tier-DevSecOps-Mega-Project/client') {
+                    sh 'find . -name "*.js" -exec node --check {} +'
+                }
+            }
+        }
+        
+        stage('Backend Compilation') {
+            steps {
+                dir('nodejs-3tier-project/3-Tier-DevSecOps-Mega-Project/api') {
+                    sh 'find . -name "*.js" -exec node --check {} +'
+                }
+            }
+        }
+        
+
+
+        // ---------------- Terraform ----------------
+        stage('Terraform EKS Init & Plan') {
+            steps {
+                dir('nodejs-3tier-project/terraform/01-ekscluster-terraform-manifests') {
+                    sh '''
+                    terraform init
+                    terraform validate
+                    terraform plan -out=tfplan
+                    '''
+                }
+            }
+        }
+        
+        stage('Approve EKS Apply') {
+            steps {
+                input message: 'Apply Terraform for EKS?', ok: 'Apply'
+            }
+        }
+
+        stage('Terraform EKS Apply') {
+            steps {
+                dir('nodejs-3tier-project/terraform/01-ekscluster-terraform-manifests') {
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+        
+        stage('Terraform EBS Init & Plan') {
+            steps {
+                dir('nodejs-3tier-project/terraform/02-ebs-terraform-manifests') {
+                    sh '''
+                    terraform init
+                    terraform validate
+                    terraform plan -out=tfplan
+                    '''
+                }
+            }
+        }
+        
+        stage('Approve EBS Apply') {
+            steps {
+                input message: 'Apply Terraform for EBS CSI?', ok: 'Apply'
+            }
+        }
+        
+        stage('Terraform EBS Apply') {
+            steps {
+                dir('nodejs-3tier-project/terraform/02-ebs-terraform-manifests') {
+                    sh 'terraform apply -auto-approve tfplan'
+                }
+            }
+        }
+        
+        // ---------------- Docker ----------------
+        stage('Build & Push Backend') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        dir('nodejs-3tier-project/3-Tier-DevSecOps-Mega-Project/api') {
+                            sh '''
+                            docker build -t jaspsing369/backend:latest .
+                            trivy image jaspsing369/backend:latest
+                            docker push jaspsing369/backend:latest
+                            '''
+                        }
+                    }
+                }
+            }
+        }  
+            
+        stage('Build & Push Frontend') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        dir('nodejs-3tier-project/3-Tier-DevSecOps-Mega-Project/client') {
+                            sh '''
+                            docker build -t jaspsing369/frontend:latest .
+                            trivy image jaspsing369/frontend:latest
+                            docker push jaspsing369/frontend:latest
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---------------- Deploy ----------------
+        stage('Approve Production Deploy') {
+            steps {
+                input message: 'Deploy to Production?', ok: 'Deploy'
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                sh '''
+                aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER_NAME}
+                kubectl apply -f nodejs-3tier-project/k8/
+                '''
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh '''
+                kubectl rollout status deployment/frontend
+                kubectl rollout status deployment/backend
+                '''
+            }
+        }
+            
+        // ---------------- Cleanup ----------------
+        stage('Cleanup Demo') {
+            steps {
+                input message: 'Destroy all resources?', ok: 'Destroy'
+        
+                sh '''
+                aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER_NAME}
+                kubectl delete -f nodejs-3tier-project/k8/ || true
+        
+                cd nodejs-3tier-project/terraform/02-ebs-terraform-manifests
+                terraform destroy -auto-approve
+        
+                cd ../01-ekscluster-terraform-manifests
+                terraform destroy -auto-approve
+                '''
+            }
+        }
+    }
+}
