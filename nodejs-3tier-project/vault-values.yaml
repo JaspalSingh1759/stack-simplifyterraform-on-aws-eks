@@ -1,0 +1,12 @@
+server:
+  ha:
+    enabled: true
+    raft:
+      enabled: true
+      setNodeId: true
+
+  service:
+    type: ClusterIP
+
+injector:
+  enabled: true
