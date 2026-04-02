@@ -5,7 +5,7 @@ metadata:
   labels:
     app: backend
 stringData:
-  DB_PASSWORD: Aditya
+  DB_PASSWORD: StrongPass123!
   JWT_SECRET: devopsShackSuperSecretKey
 ---
 apiVersion: v1
@@ -15,8 +15,8 @@ metadata:
   labels:
     app: backend
 data:
-  DB_HOST: mysql
-  DB_USER: root
+  DB_HOST: my-rds-mysql.cwdumueiw3ya.us-east-1.rds.amazonaws.com
+  DB_USER: admin
   DB_NAME: crud_app
   RESET_ADMIN_PASS: "true"
 ---
@@ -34,6 +34,58 @@ spec:
       labels:
         app: backend
     spec:
+      initContainers:
+        - name: wait-for-rds
+          image: busybox:1.31
+          command:
+            - sh
+            - -c
+            - >
+              echo "Waiting for RDS...";
+              until nc -z "$DB_HOST" 3306; do
+                sleep 2;
+              done;
+              echo "RDS is reachable."
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DB_HOST
+
+        - name: wait-for-schema
+          image: mysql:8
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for DB schema (users table)..."
+              until mysql -h $DB_HOST -u $DB_USER -p$DB_PASSWORD -D $DB_NAME -e "SELECT 1 FROM users LIMIT 1;" >/dev/null 2>&1; do
+                echo "Waiting for users table..."
+                sleep 5
+              done
+              echo "Schema is ready!"
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DB_HOST
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DB_USER
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: backend-config
+                  key: DB_NAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: DB_PASSWORD
       containers:
         - name: backend
           image: adijaiswal/backend:latest
