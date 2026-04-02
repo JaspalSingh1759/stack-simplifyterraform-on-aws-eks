@@ -5,7 +5,7 @@ metadata:
   labels:
     app: backend
 stringData:
-  DB_PASSWORD: Aditya
+  DB_PASSWORD: StrongPass123!
   JWT_SECRET: devopsShackSuperSecretKey
 ---
 apiVersion: v1
@@ -15,10 +15,10 @@ metadata:
   labels:
     app: backend
 data:
-  DB_HOST: mysql
-  DB_USER: root
+  DB_HOST: my-rds-mysql.cwdumueiw3ya.us-east-1.rds.amazonaws.com
+  DB_USER: admin
   DB_NAME: crud_app
-  RESET_ADMIN_PASS: "true"
+  RESET_ADMIN_PASS: "true"  
 ---
 apiVersion: apps/v1
 kind: Deployment
