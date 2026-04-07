@@ -15,7 +15,6 @@ metadata:
   labels:
     app: backend
 data:
-  DB_HOST: my-rds-mysql.cwdumueiw3ya.us-east-1.rds.amazonaws.com
   DB_USER: admin
   DB_NAME: crud_app
   RESET_ADMIN_PASS: "true"
@@ -50,7 +49,7 @@ spec:
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: backend-config
+                  name: db-config
                   key: DB_HOST
 
         - name: wait-for-schema
@@ -69,7 +68,7 @@ spec:
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: backend-config
+                  name: db-config
                   key: DB_HOST
             - name: DB_USER
               valueFrom:
@@ -95,7 +94,7 @@ spec:
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: backend-config
+                  name: db-config
                   key: DB_HOST
             - name: DB_USER
               valueFrom:
