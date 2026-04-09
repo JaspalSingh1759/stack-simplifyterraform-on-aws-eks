@@ -28,21 +28,24 @@ spec:
                 is_active TINYINT(1) DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
               );
+              INSERT INTO users (name, email, password, role)
+              VALUES ('admin', 'admin@test.com', 'pass', 'admin')
+              ON DUPLICATE KEY UPDATE name=name;
               EOF
               echo "DB init completed."
           env:
             - name: DB_HOST
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
+                secretKeyRef:
+                  name: rds-secret-k8s
                   key: DB_HOST
             - name: DB_USER
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: DB_USER
+                secretKeyRef:
+                  name: rds-secret-k8s
+                  key: DB_USERNAME
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: backend-secret
+                  name: rds-secret-k8s
                   key: DB_PASSWORD

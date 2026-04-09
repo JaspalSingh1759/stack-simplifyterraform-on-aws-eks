@@ -5,20 +5,7 @@ metadata:
   labels:
     app: backend
 stringData:
-  DB_PASSWORD: StrongPass123!
   JWT_SECRET: devopsShackSuperSecretKey
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: backend-config
-  labels:
-    app: backend
-data:
-  DB_HOST: my-rds-mysql.cwdumueiw3ya.us-east-1.rds.amazonaws.com
-  DB_USER: admin
-  DB_NAME: crud_app
-  RESET_ADMIN_PASS: "true"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -34,6 +21,14 @@ spec:
       labels:
         app: backend
     spec:
+      serviceAccountName: nodejs-sa
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "rds-secret"      
       initContainers:
         - name: wait-for-rds
           image: busybox:1.31
@@ -49,8 +44,8 @@ spec:
           env:
             - name: DB_HOST
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
+                secretKeyRef:
+                  name: rds-secret-k8s
                   key: DB_HOST
 
         - name: wait-for-schema
@@ -68,23 +63,23 @@ spec:
           env:
             - name: DB_HOST
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
+                secretKeyRef:
+                  name: rds-secret-k8s
                   key: DB_HOST
             - name: DB_USER
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: DB_USER
+                secretKeyRef:
+                  name: rds-secret-k8s
+                  key: DB_USERNAME
             - name: DB_NAME
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
+                secretKeyRef:
+                  name: rds-secret-k8s
                   key: DB_NAME
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: backend-secret
+                  name: rds-secret-k8s
                   key: DB_PASSWORD
       containers:
         - name: backend
@@ -94,28 +89,26 @@ spec:
           env:
             - name: DB_HOST
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
+                secretKeyRef:
+                  name: rds-secret-k8s
                   key: DB_HOST
             - name: DB_USER
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: DB_USER
+                secretKeyRef:
+                  name: rds-secret-k8s
+                  key: DB_USERNAME
             - name: DB_NAME
               valueFrom:
-                configMapKeyRef:
-                  name: backend-config
+                secretKeyRef:
+                  name: rds-secret-k8s
                   key: DB_NAME
             - name: RESET_ADMIN_PASS
-              valueFrom:
-                configMapKeyRef:
-                  name: backend-config
-                  key: RESET_ADMIN_PASS
+              value: "true"
+              
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: backend-secret
+                  name: rds-secret-k8s
                   key: DB_PASSWORD
             - name: JWT_SECRET
               valueFrom:
